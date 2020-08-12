@@ -1,0 +1,131 @@
+import warnings
+warnings.filterwarnings("ignore")
+def chec():
+    import pandas as pd
+    import numpy as np
+    file_path1 = "/Users/chunghimlau/Desktop/Python/ck.xlsx"
+    file_path2 = "/Users/chunghimlau/Desktop/Python/ck.xlsx"
+    file_path3 = "/Users/chunghimlau/Desktop/Python/ck.xlsx"
+    file_path4 = "/Users/chunghimlau/Desktop/Python/ck.xlsx"
+    #build dataframe
+    df1 = pd.read_excel(file_path1,sheet_name = "code_id_price")
+    df1 = df1.replace(np.nan,"")
+    df1 = df1.replace("<-","")
+    df2 = pd.read_excel(file_path2,sheet_name = "code_color")
+    df2 = df2.replace(np.nan,"")
+    df2 = df2.replace("<-","")
+    df3 = pd.read_excel(file_path3,sheet_name = "code_product_name")
+    df3 = df3.replace(np.nan,"")
+    df3 = df3.replace("<-","")
+    df4 = pd.read_excel(file_path4,sheet_name = "code_size")
+    df4 = df4.replace(np.nan,"")
+    df4 = df4.replace("<-","")
+    print(df1.columns)
+    print(df2.columns)
+    print(df3.columns)
+    print(df4.columns)
+    
+    #set key = id value = column(list all value)
+    dict1 = df1.set_index('excel_item_id').T.to_dict('list')
+    dict2 = df2.set_index('itemcolour_id').T.to_dict('list')
+    dict3 = df3.set_index('item_name_id').T.to_dict('list')
+    dict4 = df4.set_index('item_name_id').T.to_dict('list')
+    #print(dict1)
+    #print(dict2)
+    #print(dict3)
+    #print(dict4)
+    order_list = []
+    input1 = input()
+
+    #如果輸入order 先會開始收集item code
+    if input1 == "order":
+        order_list.clear()
+        total = 0
+
+        #輸入item code 如果入done會exit loop
+        while True:
+            item_key = input("《請輸入商品編號》\n\n*若要結算請輸入 done\n\n")
+            if item_key == "done":
+                break
+            else:
+                #Test input係咪數字 定係其他
+                try:
+                    id_num = int(item_key)
+                    #Test input係咪item key 定係普通數字
+                    #如果係item key Add入order list
+                    if id_num in dict1:
+                        #for i in dict2[id_num]:
+                            #print(i,end = " ")
+                        #Loop until the color and size is valid
+                  
+                        while True:
+                            print("商品名稱: ",dict3[id_num])
+                            for i in dict2[id_num]:
+                                if i == "":
+                                    continue
+                              
+                                print("顏色 ➡️",i)
+                            input_color = (input("你想要咩顏色 "))
+                            output_color = input_color+"色"
+                            if input_color in dict2[id_num]:
+                                break
+
+                            else:
+                                price = 0
+                                print("++++++++++你輸入的顏色不正確,請重試++++++++++++")
+
+                        while True:
+                            
+                            if "free" in dict4[id_num]:
+                                input_size = "Free"
+                                output_size = "Free"
+                            else:
+                                for i in dict4[id_num]:
+                                    if i == "":
+                                        continue
+                                    
+
+                                    print("Size ➡️",i.upper())
+                                input_size = (input("你想要咩Size "))
+                                output_size = input_size
+                                        
+                            if input_size.lower() in dict4[id_num]:
+                                price = dict1[id_num][0]
+                                order_list.append(dict3[id_num][0])
+                                order_list.append(output_color)
+                                order_list.append(output_size.capitalize())
+                                break
+
+                            else:
+                                price = 0
+                                print("++++++++++你輸入的Size不正確,請重試++++++++++++")
+
+                    else: 
+                        price = 0
+                        print("++++++++++你輸入的編號不正確,請重試++++++++++++")
+
+                except:
+                    price = 0
+                    print("++++++++++你輸入不是數字,請重試++++++++++++")
+                total += price
+
+        print("\n\n👦🏻Checkorean🇰🇷付款方法 👧🏻\n-逢星期四截單-\n未入數嘅有機會會冇貨🤮記住快啲入\n入完數冇貨嘅話店主會親自聯絡退款安排🤏🏻\n—————————————————\n💰",total,"\n—————————————————\n‼️入數之後‼️\n請將收據証明send俾我地😛\nThankyouuu~\n1⃣匯豐銀行\n661-324-574-833\n2️⃣轉數快/ PAYME\n+852 64874030（⚠️注意）\nhttps://payme.hsbc/checkorean\n—————————————————\n🔥取貨信息🔥 請按以下格式填寫\n1⃣️.順豐到付 ( 智能櫃 / SF門市 )\n🧚🏻‍♀️收件人: Karen Lau \n☎️Tel: 56265394\n 順豐編碼: 852UA27P\n2⃣️.平郵(適用於購物滿$300以上\n🌟註：郵費將於寄貨後再向客人收取\n🧚🏻‍♀️收件人: Karen Lau\n ☎️Tel: 56265394\n地址: xxxxxxxxxxxx\n—————————————————\n⚠️顧客須知\n1⃣️此為預訂商品 截單後2-3星期出貨 請耐心等待⌛🙏🏻\n2⃣️若出現落單後缺貨等情況 會向客人退回該商品全數款項\n3⃣️小店會親自聯絡顧客退款安排🥺\n \n多謝你嘅支持🙈你嘅支持會成為我地嘅動力🤍")
+    else: print("落單請輸入order")
+
+    print("\n🧚🏻‍♀️",order_list,"🧚🏻‍♀️")
+    out_df = pd.DataFrame([order_list])
+    from openpyxl import load_workbook
+    # new dataframe with same columns
+    writer = pd.ExcelWriter('/Users/chunghimlau/Desktop/Python/ck.xlsx',sheet_name = "orderlist", engine='openpyxl')
+    # try to open an existing workbook
+    writer.book = load_workbook('/Users/chunghimlau/Desktop/Python/ck.xlsx')
+    # copy existing sheets
+    writer.sheets = dict((ws.title, ws) for ws in writer.book.worksheets)
+    # read existing file
+    reader = pd.read_excel(r'/Users/chunghimlau/Desktop/Python/ck.xlsx',sheet_name = "orderlist")
+    # write out the new sheet
+    out_df.to_excel(writer,sheet_name = "orderlist",index=False,header=False,startrow=len(reader)+1)
+
+    writer.close()
+    print("**上面係你嘅訂單 每三格一組 左邊係商品名稱 中間係顏色 右邊係Size**")
+    print("⚠️請你睇吓上面訂單啱唔啱 冇問題嘅請儘快入數 入數後記得send翻證明比我哋睇吖⚠️ ")
