@@ -1,0 +1,208 @@
+from flask import Flask, request
+import requests
+from twilio.twiml.messaging_response import MessagingResponse
+import pandas as pd
+import warnings
+import numpy as np
+warnings.filterwarnings("ignore")
+app = Flask(__name__)
+
+total_list = []
+order_list = []
+toexcel = []
+dict2list = []
+dict4list = []
+i = 0
+
+@app.route('/bot', methods=['POST'])
+def bot():
+
+    file_path1 = "/Users/chunghimlau/Desktop/Python/ck.xlsx"
+    file_path2 = "/Users/chunghimlau/Desktop/Python/ck.xlsx"
+    file_path3 = "/Users/chunghimlau/Desktop/Python/ck.xlsx"
+    file_path4 = "/Users/chunghimlau/Desktop/Python/ck.xlsx"
+    #build dataframe
+    #Replace null value by ""
+    #Replace "<-" by ""
+    df1 = pd.read_excel(file_path1,sheet_name = "code_id_price")
+    df1 = df1.replace(np.nan,"")
+    df1 = df1.replace("<-","")
+    df2 = pd.read_excel(file_path2,sheet_name = "code_color")
+    df2 = df2.replace(np.nan,"")
+    df2 = df2.replace("<-","")
+    df3 = pd.read_excel(file_path3,sheet_name = "code_product_name")
+    df3 = df3.replace(np.nan,"")
+    df3 = df3.replace("<-","")
+    df4 = pd.read_excel(file_path4,sheet_name = "code_size")
+    df4 = df4.replace(np.nan,"")
+    df4 = df4.replace("<-","")
+    print(df1.columns)
+    print(df2.columns)
+    print(df3.columns)
+    print(df4.columns)
+   
+        
+    #set key = id value = column(list all value)
+    dict1 = df1.set_index('excel_item_id').T.to_dict('list')
+    dict2 = df2.set_index('itemcolour_id').T.to_dict('list')
+    dict3 = df3.set_index('item_name_id').T.to_dict('list')
+    dict4 = df4.set_index('item_name_id').T.to_dict('list')
+    #print(dict1)
+    #print(dict2)
+    #print(dict3)
+    #print(dict4)
+   
+    
+    
+    incoming_msg = request.values.get('Body', '')
+    resp = MessagingResponse()
+    msg = resp.message()
+    responded = False
+    global total_list
+# Incoming_msg == "order"
+    if "order" in incoming_msg:
+        order_list.clear()
+        total_list.clear()
+        toexcel.clear()
+        quote = "《請輸入商品編號》\n\n*若要結算請輸入 done\n\n"
+        msg.body(quote)
+        responded = True
+        
+# Incoming_msg not equal to "order"        
+    if incoming_msg != "order":
+        try:
+            #check if it is number or string
+            #check if it is item_code 101,102,103....
+            item_key = incoming_msg
+
+            id_num = int(item_key)
+            if id_num in dict1:
+                
+                dict2list.clear()
+                for item in dict2[id_num]:
+                    if item != "":
+                        dict2list.append(item)
+                    
+                quo = "商品名稱: "+str(dict3[id_num]),"\n顏色 ➡️"+str(dict2list)+"\n你想要咩顏色 "
+                quote =  ''.join(quo)
+                order_list.append(id_num)
+                toexcel.append(dict3[id_num][0])
+                
+                print("Order List",order_list)
+                #print("Total = ",total_list)
+                msg.body(quote)
+                responded = True
+            else:
+                quote = "🤔你打嘅商品編號唔啱啵!試多一次~🤔"
+                print(quote)
+                msg.body(quote)
+                responded = True
+        except:
+            if incoming_msg != "done" and len(order_list) > 0:
+            
+                input_color = incoming_msg
+                output_color = input_color+"色"
+                
+                global i
+                print("I = ",i)
+                id_num = order_list[i]
+                if input_color in dict2[id_num]:
+                    order_list.append(output_color)
+                    toexcel.append(output_color)
+                    print("Order List",order_list)
+                    #print("Total = ",total_list)
+                    dict4list.clear()
+                    for item in dict4[id_num]:
+                        if item != "":
+                            dict4list.append(item.upper())
+                    quo = "Size ➡️"+str(dict4list)+"\n你想要咩Size "
+                    quote = ''.join(quo)
+                    msg.body(quote)
+                    responded = True
+                else:
+
+                    if incoming_msg.lower() != "s" and incoming_msg.lower() != "m" and incoming_msg.lower() != "l" and incoming_msg.lower() != "xl" and incoming_msg.lower() != "done":
+                        if len(order_list)%3 == 1 or len(order_list) == 1 :
+                            quote = "🤔好似件衫冇你揀果隻顏色啵!試多一次~🤔"
+                            print(quote)
+                            msg.body(quote)
+                            responded = True
+                        else:
+
+                            if incoming_msg.lower() != "s" and incoming_msg.lower() != "m" and incoming_msg.lower() != "l" and incoming_msg.lower() != "xl":
+                                if len(order_list)%3 == 2 or len(order_list) == 2:
+                                    quote = "🤔好似件衫冇呢個Size啵!試多一次~🤔"
+                                    print(quote)
+                                    msg.body(quote)
+                                    responded = True
+            else:
+                responded = False
+                
+                
+    if incoming_msg.lower() == "s" or incoming_msg.lower() == "m" or incoming_msg.lower() == "l" or incoming_msg.lower() == "xl" or incoming_msg.lower() == "free":
+
+        id_num = order_list[i]
+        if incoming_msg.lower() in dict4[id_num]:
+            order_list.append(incoming_msg.upper())
+            toexcel.append(incoming_msg.upper())
+            print("Order List",order_list)
+            #print("Total = ",total_list)
+            price = dict1[id_num][0]
+            total_list.append(int(price))
+            print("Total = ",total_list)
+            
+            i += 3
+            print("I = ",i)
+            quo = "仲有冇其他？有就再打多次item code!","\n埋單就打done"
+            quote =  ''.join(quo)
+            msg.body(quote)
+            responded = True
+    if incoming_msg == "done":
+        
+        print(total_list)
+        out_total = []
+        out_total = total_list.copy()
+        out_total = str(sum(out_total))
+        #id_num = order_list[i]
+        #output_color = order_list[1]
+        #output_size = order_list[2]
+        quo = "👦🏻Checkorean🇰🇷付款方法 👧🏻\n-逢星期四截單-\n未入數嘅有機會會冇貨🤮記住快啲入\n入完數冇貨嘅話店主會親自聯絡退款安排🤏🏻\n—————————————————\n💰",out_total,"\n—————————————————\n‼️入數之後‼️\n請將收據証明send俾我地😛\nThankyouuu~\n1⃣匯豐銀行\n661-324-574-833\n2️⃣轉數快/ PAYME\n+852 64874030（⚠️注意）\nhttps://payme.hsbc/checkorean\n—————————————————\n🔥取貨信息🔥 請按以下格式填寫\n1⃣️.順豐到付 ( 智能櫃 / SF門市 )\n🧚🏻‍♀️收件人: Karen Lau \n☎️Tel: 56265394\n 順豐編碼: 852UA27P\n2⃣️.平郵(適用於購物滿$300以上\n🌟註：郵費將於寄貨後再向客人收取\n🧚🏻‍♀️收件人: Karen Lau\n ☎️Tel: 56265394\n地址: xxxxxxxxxxxx\n—————————————————\n⚠️顧客須知\n1⃣️此為預訂商品 截單後2-3星期出貨 請耐心等待⌛🙏🏻\n2⃣️若出現落單後缺貨等情況 會向客人退回該商品全數款項\n3⃣️小店會親自聯絡顧客退款安排🥺\n \n多謝你嘅支持🙈你嘅支持會成為我地嘅動力🤍"
+        quote =  ''.join(quo)
+        i = 0
+        #a = "OKOKOK"
+        #msg.body(order_list[0])
+        #first = str(dict3[id_num][0])
+        out_df = pd.DataFrame([toexcel])
+        from openpyxl import load_workbook
+        # new dataframe with same columns
+        writer = pd.ExcelWriter('/Users/chunghimlau/Desktop/Python/ck.xlsx',sheet_name = "orderlist", engine='openpyxl')
+        # try to open an existing workbook
+        writer.book = load_workbook('/Users/chunghimlau/Desktop/Python/ck.xlsx')
+        # copy existing sheets
+        writer.sheets = dict((ws.title, ws) for ws in writer.book.worksheets)
+        # read existing file
+        reader = pd.read_excel(r'/Users/chunghimlau/Desktop/Python/ck.xlsx',sheet_name = "orderlist")
+        # write out the new sheet
+        out_df.to_excel(writer,sheet_name = "orderlist",index=False,header=False,startrow=len(reader)+1)
+
+        writer.close()
+        msg.body(quote)
+        #msg.body(first)
+        #msg.body(output_color)
+        #msg.body(output_size)
+        
+        responded = True
+
+    if not responded:
+
+        #msg.body('I only know about famous quotes and cats, sorry!')
+        pass
+    return str(resp)
+
+     
+    
+if __name__ == '__main__':
+    app.run()   
+
+
+  
